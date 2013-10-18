@@ -93,7 +93,8 @@ public class MethodsInvocationMetricTests {
 		
 		assertEquals(1, metric.getInvocations().get("method/0").size());
 	}
-	
+
+
 	@Test
 	public void shouldNotGetSequencedInvocations() {
 		metric.calculate(
@@ -119,4 +120,69 @@ public class MethodsInvocationMetricTests {
 		assertTrue(invokedMethods.contains("getOutput/0"));
 		assertFalse(invokedMethods.contains("contains/1"));
 	}
+	
+	@Test
+	public void shouldIdentifyTypeOfTheObjectThatAMethodHasBeenInvoked() {
+		metric.calculate(
+				toInputStream(
+					"package a.b;\n"+
+					"import a.b.c.AnotherClass;\n"+
+					"class Bla {\n"+
+					"public void method() {"+
+					"AnotherClass a = new AnotherClass();"+
+					"a.doSomething();"+
+					"}"+
+					"}"
+				));
+		
+		MethodInvocation mi = metric.getAllInvocations().iterator().next();
+		assertEquals("AnotherClass", mi.getInvokedClassName());
+		assertEquals("a.b.c", mi.getInvokedPackage());
+		assertEquals("doSomething/0", mi.getInvokedMethod());
+		assertEquals("Bla", mi.getOriginalClass());
+		assertEquals("method/0", mi.getOriginalMethod());
+	}
+	@Test
+	public void shouldIdentifyTypeOfTheObjectThatAMethodHasBeenInvokedInline() {
+		metric.calculate(
+				toInputStream(
+						"package a.b;\n"+
+						"import a.b.c.AnotherClass;\n"+
+						"class Bla {\n"+
+						"public void method() {"+
+						"new AnotherClass().doSomething();"+
+						"}"+
+						"}"
+				));
+		
+		MethodInvocation mi = metric.getAllInvocations().iterator().next();
+		assertEquals("AnotherClass", mi.getInvokedClassName());
+		assertEquals("a.b.c", mi.getInvokedPackage());
+		assertEquals("doSomething/0", mi.getInvokedMethod());
+		assertEquals("Bla", mi.getOriginalClass());
+		assertEquals("method/0", mi.getOriginalMethod());
+	}
+	
+	@Test
+	public void shouldIdentifyTypeOfTheObjectThatAMethodHasBeenDeclaredAsAttribute() {
+		metric.calculate(
+				toInputStream(
+						"package a.b;\n"+
+						"import a.b.c.AnotherClass;\n"+
+						"class Bla {\n"+
+						"private AnotherClass c;"+
+						"public void method() {"+
+						"c.doSomething();"+
+						"}"+
+						"}"
+				));
+		
+		MethodInvocation mi = metric.getAllInvocations().iterator().next();
+		assertEquals("AnotherClass", mi.getInvokedClassName());
+		assertEquals("a.b.c", mi.getInvokedPackage());
+		assertEquals("doSomething/0", mi.getInvokedMethod());
+		assertEquals("Bla", mi.getOriginalClass());
+		assertEquals("method/0", mi.getOriginalMethod());
+	}
+	
 }
